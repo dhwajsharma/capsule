@@ -2,9 +2,12 @@ import Image from 'next/image'
 import React from 'react'
 import { MenuIcon, ChevronDownIcon, HomeIcon, SearchIcon } from "@heroicons/react/solid"
 import { BellIcon, ChatIcon, GlobeIcon, PlusIcon, SparklesIcon, SpeakerphoneIcon, VideoCameraIcon } from "@heroicons/react/outline"
-
+import { signIn, signOut, useSession } from 'next-auth/react'
 
 const Header = () => {
+
+    const { data: session } = useSession()
+
     return (
         <div className="sticky top-0 z-50 flex bg-white px-4 py-2 shadow-sm">
             <h2 className="flex items-center">Capsule</h2>
@@ -35,9 +38,25 @@ const Header = () => {
                 <MenuIcon className="icon" />
             </div>
 
-            <div className="hidden lg:flex items-center space-x-2 border border-gray-100 p-2 cursor-pointer ">
-                <p className="text-gray-400">Sign In</p>
-            </div>
+            {
+                session ? (
+                    <div onClick={ () => signOut() } className="hidden lg:flex items-center space-x-2 border border-gray-100 p-2 cursor-pointer ">
+                        <div className="flex-1 text-xs">
+                            <p className="truncate">{ session?.user?.name }</p>
+                            <p className="text-gray-400">Sign Out</p>
+                        </div>
+
+                        <ChevronDownIcon className="h-5 flex-shrink-0 text-gray" />
+
+                    </div>
+                ) : (
+                    <div onClick={ () => signIn() } className="hidden lg:flex items-center space-x-2 border border-gray-100 p-2 cursor-pointer ">
+                        <p className="text-gray-400">Sign In</p>
+                    </div>
+                )
+            }
+
+
 
         </div>
     )
