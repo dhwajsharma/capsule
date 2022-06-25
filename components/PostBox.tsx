@@ -3,6 +3,11 @@ import React, { useState } from 'react'
 import Avatar from './Avatar'
 import { LinkIcon, PhotographIcon } from "@heroicons/react/outline"
 import { useForm } from "react-hook-form"
+import { useMutation } from '@apollo/client'
+import { ADD_POST, ADD_SUBCAPSULE } from '../graphql/mutations'
+import client from "../apollo-client"
+import { GET_SUBCAPSULE_BY_TOPIC } from '../graphql/queries'
+import toast from 'react-hot-toast'
 
 type FormData = {
     postTitle: string,
@@ -13,12 +18,84 @@ type FormData = {
 
 const PostBox = () => {
     const { data: session } = useSession()
-    const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>();
+    const { register, setValue, handleSubmit, watch, formState: { errors } } = useForm<FormData>();
     const [imageBoxOpen, setImageBoxOpen] = useState<boolean>(false)
+    const [addPost] = useMutation(ADD_POST)
+    const [addSubcapsule] = useMutation(ADD_SUBCAPSULE)
 
 
     const onSubmit = handleSubmit(async (formData) => {
-        console.log(formData)
+        console.log(formData);
+        const notification = toast.loading("Creating new post")
+
+        try {
+            // Query for the subcapsule topic
+            const { data: { getSubcapsuleListByTopic } } = await client.query({
+                query: GET_SUBCAPSULE_BY_TOPIC,
+                variables: {
+                    topic: formData.subcapsule
+                }
+            })
+
+            const subcapsuleExists = getSubcapsuleListByTopic.length > 0;
+
+            if (!subcapsuleExists) {
+                // create subcapsule
+                const { data: { insertSubcapsule: newSubcapsule } } = await addSubcapsule({
+                    variables: {
+                        topic: formData.subcapsule,
+                    }
+                })
+
+                console.log(formData)
+                const image = formData.postImage || ""
+
+                const { data: { insertPost: newPost }, } = await addPost({
+                    variables: {
+                        body: formData.postBody,
+                        image: image,
+                        subcapsule_id: newSubcapsule.id,
+                        title: formData.postTitle,
+                        username: session?.user?.name
+                    }
+                })
+
+                console.log(newPost);
+
+            } else {
+                // use existing subcapsule
+                console.log(getSubcapsuleListByTopic);
+
+                const image = formData.postImage || ""
+
+                const { data: { insertPost: newPost }, } = await addPost({
+                    variables: {
+                        body: formData.postBody,
+                        image: image,
+                        subcapsule_id: getSubcapsuleListByTopic[0].id,
+                        title: formData.postTitle,
+                        username: session?.user?.name
+                    }
+                })
+                console.log("new post addded", newPost)
+            }
+
+            // after the post has been added
+            setValue("postBody", "")
+            setValue("postImage", "")
+            setValue("postTitle", "")
+            setValue("subcapsule", "")
+
+            toast.success("New post created", {
+                id: notification
+            })
+
+        } catch (error) {
+            toast.error("Whoops something went wrong! ", {
+                id: notification
+            })
+        }
+
     })
 
     return (

@@ -87,6 +87,15 @@ type Query {
       table: "subcapsule"
       configuration: "postgresql_config"
     )
+  getSubcapsuleListByTopic(topic: String!): [Subcapsule]
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      query: """
+      select * from "subcapsule" where "topic" = $1 // $1 is the first query parameter
+      """
+      configuration: "postgresql_config"
+    )
   getVoteList: [Vote]
     @dbquery(
       type: "postgresql"
@@ -102,7 +111,6 @@ type Mutation {
   """
   insertPost(
     image: String!
-    created_at: DateTime!
     body: String!
     subcapsule_id: ID!
     title: String!
@@ -115,6 +123,15 @@ type Mutation {
       dml: INSERT
       configuration: "postgresql_config"
     )
+
+  insertSubcapsule(topic: String!): Subcapsule
+    @dbquery(
+      type: "postgresql"
+      table: "subcapsule"
+      dml: INSERT
+      configuration: "postgresql_config"
+    )
+
   """
   In this mutation example you can see how to do a mutation to delete data from the database.
   """
